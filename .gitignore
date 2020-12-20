@@ -1,0 +1,5 @@
+__pycache__/
+.vscode/
+training_samples/
+testing_samples/
+models/
