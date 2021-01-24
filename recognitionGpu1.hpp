@@ -62,7 +62,7 @@ string gstreamer() {
             to_string(displayHeight) + ", format=(string)BGRx ! videoconvert ! video/x-raw, format=(string)BGR ! appsink";
 }
 void initializeHAAR(){
-	faceCascade->setFindLargestObject(false);
+	faceCascade->setFindLargestObject(true);
     faceCascade->setScaleFactor(1.05);
     faceCascade->setMinNeighbors(6);
 	faceCascade->setMinObjectSize(Size(80,80));
@@ -99,11 +99,10 @@ void showAdvancedInfo(Mat frame, float fps){
 }
 
 void showInfoWhenMakeSelfies(Mat frame){
-	//ostringstream ss;
-    //ss << "FPS: " << setprecision(1) << fixed << fps;
-	putText(frame, "Zostanie zrobione 20 zdjec.", Point(2, 10), FONT_HERSHEY_SIMPLEX, 0.4, Scalar(255, 255, 255), 0.8, 16);
+
+	putText(frame, "Zostanie zrobione 50 zdjec.", Point(2, 10), FONT_HERSHEY_SIMPLEX, 0.4, Scalar(255, 255, 255), 0.8, 16);
 	putText(frame, "Upewnij sie, ze jestes sam w kadrze.", Point(2, 22), FONT_HERSHEY_SIMPLEX, 0.4, Scalar(255, 255, 255), 0.8, 16);
-	putText(frame, "Patrz w obiektyw.", Point(2, 32), FONT_HERSHEY_SIMPLEX, 0.4, Scalar(255, 255, 255), 0.8, 16);
+	putText(frame, "Patrz w obiektyw.", Point(2, 34), FONT_HERSHEY_SIMPLEX, 0.4, Scalar(255, 255, 255), 0.8, 16);
 
 	if(imgCounter != 0)
 	{
@@ -117,6 +116,7 @@ void detectAndDisplay(Mat frame, bool makePhoto)
 	cv::cuda::GpuMat frameGray, frameEq, frameCropGpu;
 	cv::cuda::GpuMat frameGpu, croppedImage, resultOfCropped, grayCropped, facesBuf;
 	Mat frameCrop;
+	frame.convertTo(frame, -1, 1, 30);
 	frameGpu.upload(frame);
 	cv::cuda::cvtColor(frameGpu, frameGray, COLOR_BGR2GRAY);
 	frameCropGpu = frameGray.clone();
@@ -228,54 +228,30 @@ void getImages(vector<Mat>& images, vector<int>& labels) {
 		glob(positiveDirectory + directories[dir] + "/", photoDir, true);
 		size_t countPhotos = photoDir.size();
 
-		Mat imgNoising, imgDenoising;
-		float mean = (10,13,18);
-		float sigma = (1,5,15);
+		float mean = (10,15,20);
+		float sigma = (1,5,25);
 			
 		clog << "Dir name: " << directories[dir] << " Label: " << dir << endl;
 		for (size_t photo = 0; photo < countPhotos; photo++)
 		{	
 			Mat img = imread(photoDir[photo]);
-			//Mat noise = Mat(img.size(), img.type());
-			//imgNoising = img.clone();
+			Mat noise(img.size(), img.type());
+			Mat imgNoising = img.clone();
 
-			images.push_back(img);
-			labels.push_back(dir);
-			// if(test) imwrite("/home/jetson/Testy/test/img.jpg", img);
+			 images.push_back(img);
+			 labels.push_back(dir);
 			
-			// GaussianBlur(img, imgDenoising, Size(9, 9), 0);
-			// images.push_back(imgDenoising);
-			// labels.push_back(dir);
-			// if(test) imwrite("/home/jetson/Testy/test/denoise.jpg", imgDenoising);
-
-			// cv::randn(noise, mean, sigma);
-			// imgNoising+= noise;
-			// images.push_back(imgNoising);
-			// labels.push_back(dir);
-			// if(test) imwrite("/home/jetson/Testy/test/noise.jpg", imgNoising);
-	
-		    flip(img, img, 1);
+			flip(img, img, 1);
 			images.push_back(img);
 			labels.push_back(dir);
-			// if(test) imwrite("/home/jetson/Testy/test/flip.jpg", img);
 
-			// flip(imgDenoising, imgDenoising, 1);
-			// imgDenoising.convertTo(imgDenoising, -1, 1, 20);
-			// images.push_back(imgDenoising);
-			// labels.push_back(dir);
-			// if(test) imwrite("/home/jetson/Testy/test/flipDenoise.jpg", imgDenoising);
-				
-			// flip(imgNoising, imgNoising, 1);
-			// images.push_back(imgNoising);
-			// labels.push_back(dir);
-			// if(test) imwrite("/home/jetson/Testy/test/flipNoise.jpg", imgNoising);
-				
-			// test = false;
+			cv::randn(noise, mean, sigma);
+			imgNoising+= noise;
+			images.push_back(imgNoising);
+			labels.push_back(dir);
 		}
-
+		
 		event["labels"][std::to_string(dir)] = directories[dir];
-    
-   // cout << styledWriter.write(event);
 	}	
 
 	Json::StyledWriter styledWriter;
@@ -291,48 +267,24 @@ void getNegativeImages(vector<Mat>& images, vector<int>& labels) {
 	glob(negDirectory, photoDir, true);
 	size_t countPhotos = photoDir.size();
 
-    Mat imgNoising, imgDenoising;
     float mean = (10,15,20);
     float sigma = (1,5,25);
 
 	for (size_t photo = 0; photo < countPhotos; photo++)
 	{	
 		Mat img = imread(photoDir[photo]);
-       // Mat noise = Mat(img.size(), img.type());
-       // imgNoising = img.clone();
-
+		Mat noise(img.size(), img.type());
+		Mat imgNoising = img.clone();
 		images.push_back(img);
 		labels.push_back(-1);
-        // if(test) imwrite("/home/jetson/Testy/test/img.jpg", img);
-           
-        // GaussianBlur(img, imgDenoising, Size(9, 9), 0);
-        // images.push_back(imgDenoising);
-		// labels.push_back(-1);
-        // if(test) imwrite("/home/jetson/Testy/test/denoise.jpg", imgDenoising);
-
-        // cv::randn(noise, mean, sigma);
-        // imgNoising+= noise;
-        // images.push_back(imgNoising);
-		// labels.push_back(-1);
-        // if(test) imwrite("/home/jetson/Testy/test/noise.jpg", imgNoising);
-  
-        // flip(img, img, 1);
-        // images.push_back(img);
-		// labels.push_back(-1);
-        // if(test) imwrite("/home/jetson/Testy/test/flip.jpg", img);
-
-        // flip(imgDenoising, imgDenoising, 1);
-        // imgDenoising.convertTo(imgDenoising, -1, 1, 20);
-        // images.push_back(imgDenoising);
-		// labels.push_back(-1);
-        // if(test) imwrite("/home/jetson/Testy/test/flipDenoise.jpg", imgDenoising);
-            
-        // flip(imgNoising, imgNoising, 1);
-        // images.push_back(imgNoising);
-		// labels.push_back(-1);
-        // if(test) imwrite("/home/jetson/Testy/test/flip.jpg", imgNoising);
-            
-        //test = false;
+		
+		flip(img, img, 1);
+		images.push_back(img);
+		labels.push_back(-1);
+		cv::randn(noise, mean, sigma);
+		imgNoising+= noise;
+		images.push_back(imgNoising);
+		labels.push_back(-1);   
 		}
 
 }
@@ -408,31 +360,24 @@ void trainSVM(){
 
     clog << "Trenowanie SVM..." << endl << "wiersze: " << trainData.rows << endl << "kolumny: " << trainData.cols << endl;
     Ptr<SVM> svm = SVM::create();
-    Ptr<ParamGrid> CvParamGrid_C = cv::ml::ParamGrid::create(pow(2.0, -5), pow(2.0, 15), pow(2.0, 2));
-	Ptr<ParamGrid> CvParamGrid_gamma = cv::ml::ParamGrid::create(pow(2.0, -15), pow(2.0, 3), pow(2.0, 2));
-	//Ptr<ParamGrid> CvParamGrid_C = cv::ml::ParamGrid::create(pow(2.0, 1), pow(2.0, 4), pow(2.0, 2));
-	//Ptr<ParamGrid> CvParamGrid_gamma = cv::ml::ParamGrid::create(pow(2.0, 3), pow(2.0, 6), pow(2.0, 2));
-    svm->setDegree( .65 );
-    svm->setTermCriteria( TermCriteria(TermCriteria::MAX_ITER, 1e3, 1e-6) );
+    Ptr<ParamGrid> CvParamGrid_C = cv::ml::ParamGrid::create(30, 30, 0);
+
+    svm->setTermCriteria( TermCriteria(TermCriteria::MAX_ITER, 1e4, 1e-7) );
     svm->setType(SVM::C_SVC);
-	svm->setKernel(SVM::POLY);
-	svm->setC(20);
-	svm->setGamma(100);
-	//svm->setDegree(.65);
-    //svm->setGamma(10);    
-	//svm->setCoef0( 1 );
-    //svm->setDegree( 3 );
-     //svm->setTermCriteria(	 TermCriteria(TermCriteria::MAX_ITER + TermCriteria::EPS, 1000, 1e-3 ) );
-    //svm->setGamma( 20 );
-    // svm->setKernel( SVM::POLY );
-    //svm->setNu( 0.5 );
-    //svm->setP( 0.1 ); // for EPSILON_SVR, epsilon in loss function?
-    //svm->setC( 6 ); // From paper, soft classifier
-    //svm->setType( SVM::C_SVC ); // C_SVC; // EPSILON_SVR; // may be also NU_SVR; // do regression task
+	svm->setKernel(SVM::LINEAR);
+    svm->setGamma(0.5);    
+    svm->setC(20 ); 
+    svm->setType( SVM::C_SVC ); 
 	
-    //convertToMl( gradientsList, trainData );
-	//svm->train( trainData, ROW_SAMPLE, labels );
-	svm->trainAuto( trainData, ROW_SAMPLE, labels);//,  2, CvParamGrid_C, CvParamGrid_gamma );
+	svm->trainAuto( trainData, ROW_SAMPLE, labels, 10, CvParamGrid_C);
+	double gamma = svm->getGamma();
+	double C = svm->getC();
+	double coef = svm->getCoef0();
+	double deg = svm->getDegree();
+	int kernel = svm->getKernelType();
+	int type = svm->getType();
+
+	cout << "Gamma: " << gamma << " C: " << C << " Coef: " << coef << " Deg: " << deg << " Kernel: " << kernel << " Type: " << type << endl; 
 	clog << "...zakończono " << endl;
 
     if (false)
@@ -452,13 +397,13 @@ void trainSVM(){
 	svm->save(svmClassifier);
 }
 
-void sendImagesToWeb(){
+void sendImageToWeb(string  argv){
   
 	CURL *curl = curl_easy_init();
 	curl_mime *mime;
 	curl_mimepart *part;
 
-	string url = "http://10.42.0.36:8000/api/frame"; 
+	string url = "http://"+argv+":8000/api/frame"; 
 
 	mime = curl_mime_init(curl);
 	part = curl_mime_addpart(mime);
@@ -472,7 +417,7 @@ void sendImagesToWeb(){
 	curl_easy_setopt(curl, CURLOPT_MIMEPOST, mime);
 	curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
 
-	//`	curl_easy_perform(curl);
+	curl_easy_perform(curl);
 	curl_easy_cleanup(curl);
 	curl_mime_free(mime);
 	
@@ -516,16 +461,16 @@ int calculateFrequency(vector<int> &detectionVector){
 		}
 	}
 	cout << "Wartość: " << predictedPerson << " Liczba wystąpień: " << currentMax << endl;
-	if ( currentMax > detectionSize*0.9){
+	if ( currentMax >= detectionSize*0.9){
 		return predictedPerson;
 	}
 	else return -1;
 }
 
-void faceDetect() {
+void faceDetect(string  argv) {
 
 	Scalar fontColor = CV_RGB(0, 255, 0);
-	Ptr< cv::ml::SVM > svm = Algorithm::load<cv::ml::SVM>(svmClassifier);//cv::ml::SVM::create();
+	Ptr< cv::ml::SVM > svm = Algorithm::load<cv::ml::SVM>(svmClassifier);
 
 	Mat SV = svm->getSupportVectors();
 	Mat USV = svm->getUncompressedSupportVectors();
@@ -557,12 +502,12 @@ void faceDetect() {
         cout << list[iter] << " " << labelsDict.at(stoi(list[iter]))<< endl;
     }
 	labelsDict.insert({ -1, "Nieznany"});
-	Mat frame;
+	Mat frame, identifyFrame;
 
 	cv::cuda::GpuMat frameGpu, grayFrame, faceResized, facesBuf, descriptorGpu;
 	vector<float> descriptors;
 	vector<Rect> faces;
-	vector<int> detectionVector(30, -1);
+	vector<int> detectionVector(60, -1);
 
 	Ptr<cv::cuda::HOG> hog = cv::cuda::HOG::create();
 
@@ -579,36 +524,43 @@ void faceDetect() {
 	pDict = PyModule_GetDict(pModule);
 	pFunc = PyDict_GetItem(pDict, PyUnicode_FromString("main"));
 	
-	bool mustTestVoice = false;
+	
 	bool identifyIsDone = false;
 	int index = 0;
 	int predictionIndex = 0;
 	int predictionFreqValue =-1;
+
+	string fileName;
+	std::vector<int>param(2);
+	param[0]=cv::IMWRITE_JPEG_QUALITY;
+	param[1]=50;
+
+	std::vector<int>paramIdentify(2);
+	paramIdentify[0]=cv::IMWRITE_JPEG_QUALITY;
+	paramIdentify[1]=70;
 
 	while (true)
 	{
 		TickMeter timer;
 		capture >> frame;
 		
-		if (identifyIsDone){
-			usleep(5000000);
-			identifyIsDone = false;
-		}
-		else if (!frame.empty()) {
+		if (!frame.empty()) {
 
     		timer.start();
+			frame.convertTo(frame, -1, 1, 30);
 			frameGpu.upload(frame);
 
 			cv::cuda::cvtColor(frameGpu, grayFrame, COLOR_BGR2GRAY);
-	
+			
 			faceCascade->detectMultiScale(grayFrame, facesBuf);
 			faceCascade->convert(facesBuf, faces);
 
 			for (int i = 0; i < faces.size(); i++)
 			{	
 				cv::cuda::GpuMat face = grayFrame(faces[i]);
+				
 				cv::cuda::resize(face, faceResized, Size(imgWidth, imgHeight), 1.0, 1.0, INTER_LINEAR);
-	
+
 				hog->compute(faceResized, descriptorGpu);
 				descriptorGpu.download(descriptors);
 
@@ -624,7 +576,7 @@ void faceDetect() {
 				detectionVector[predictionIndex] = imagePrediction;
 
 				predictionIndex++;
-				if( predictionIndex == 30){
+				if( predictionIndex == 60){
 					predictionFreqValue = calculateFrequency(detectionVector);
 					predictionIndex = 0;
 				}
@@ -632,31 +584,31 @@ void faceDetect() {
 					predictionFreqValue = -1;
 				}
 				
-				if(predictionFreqValue != -1 || mustTestVoice)
+				if(predictionFreqValue != -1)
 				{	
-					if(!mustTestVoice){
-						putText(frame, "Trwa identyfikacja mowcy...", Point(2, frame.rows - 10), FONT_HERSHEY_SIMPLEX, 0.8, Scalar(255, 255, 255), 2, 16);
-						mustTestVoice = true; 
+
+					identifyFrame = frame.clone();
+					putText(frame, "Trwa identyfikacja mowcy...", Point(2, frame.rows - 10), FONT_HERSHEY_SIMPLEX, 0.8, Scalar(255, 255, 255), 2, 16);
+					fileName = "/tmp/ramdisk/identify/detect.jpg"; 
+					imwrite(fileName, frame, paramIdentify);
+					usleep(500000);
+					sendImageToWeb(argv);
+
+					pValue = NULL;
+					bool checkVoice = true;
+					string voicePredictionLabel;
+
+					while(pValue == NULL){
+						if(pFunc != NULL && checkVoice == true){
+							clog << "Trwa identyfikacja mówcy...";
+							checkVoice = false;
+							usleep(1000000);
+							pValue = PyObject_CallObject(pFunc, NULL);
+							voicePredictionLabel = _PyUnicode_AsString(pValue);
+							clog << "...zakończono" << endl;
+							std::cout << voicePredictionLabel<< std::endl;
+						} 
 					}
-					else {
-						pValue = NULL;
-						bool checkVoice = true;
-						string voicePredictionLabel;
-
-						while(pValue == NULL){
-
-							if(pFunc != NULL && mustTestVoice == true){
-								clog << "Trwa identyfikacja mówcy...";
-								mustTestVoice = false;
-								pValue = PyObject_CallObject(pFunc, NULL);
-								voicePredictionLabel = _PyUnicode_AsString(pValue);
-								clog << "...zakończono" << endl;
-								std::cout << voicePredictionLabel<< std::endl;
-							} 
-							else {
-								std::cout << "Nie znaleziono funkcji w pliku .py\n";
-							}
-						}
 
 						string imagePredictionLabel = labelsDict.at(imagePrediction);
 						clog << "Wyniki identyfikacji:" << endl;
@@ -668,31 +620,35 @@ void faceDetect() {
 							split( imagePredictionLabel, vectorLabel);
 
 							for(size_t s = 0; s <vectorLabel.size(); s++ ){
-								rectangle(frame, Rect(faces[i].x -1, faces[i].y + faces[i].height + 1 + (faces[i].height * 0.2 * s), faces[i].width +2, faces[i].height * 0.2), fontColor, -1);
-								putText(frame, vectorLabel[s], Point(faces[i].x + 1, faces[i].y + faces[i].height * 1.13 + (faces[i].height * 0.2 * s)), FONT_HERSHEY_SIMPLEX, (float)faces[i].height/190, Scalar(255, 255, 255), 0.5, 1);				
+								rectangle(identifyFrame, Rect(faces[i].x -1, faces[i].y + faces[i].height + 1 + (faces[i].height * 0.2 * s), faces[i].width +2, faces[i].height * 0.2), fontColor, -1);
+								putText(identifyFrame, vectorLabel[s], Point(faces[i].x + 1, faces[i].y + faces[i].height * 1.13 + (faces[i].height * 0.2 * s)), FONT_HERSHEY_SIMPLEX, (float)faces[i].height/190, Scalar(0, 0, 0), 0.7, 1);				
 							}
-							putText(frame, "Identyfikacja zakonczona sukcesem", Point(2, frame.rows - 10), FONT_HERSHEY_SIMPLEX, 0.8, fontColor, 2, 16);
+							putText(identifyFrame, "Identyfikacja zakonczona sukcesem", Point(2, identifyFrame.rows - 10), FONT_HERSHEY_SIMPLEX, 0.8, fontColor, 2, 16);
 						}
 						else {
-							putText(frame, "Wyniki identyfikacji nie sa zgodne", Point(2, frame.rows - 55), FONT_HERSHEY_SIMPLEX, 0.8, CV_RGB(255, 0, 0), 2, 16);
-							putText(frame, "Rozpoznanie twarzy: " + imagePredictionLabel, Point(2, frame.rows - 30), FONT_HERSHEY_SIMPLEX, 0.7, Scalar(255, 255, 255), 1, 16);
-							putText(frame, "Rozpoznanie glosu: " + voicePredictionLabel, Point(2, frame.rows - 7), FONT_HERSHEY_SIMPLEX, 0.7, Scalar(255, 255, 255), 1, 16);
+							putText(identifyFrame, "Wyniki identyfikacji nie sa zgodne", Point(2, identifyFrame.rows - 55), FONT_HERSHEY_SIMPLEX, 0.8, CV_RGB(255, 0, 0), 2, 16);
+							putText(identifyFrame, "Rozpoznanie twarzy: " + imagePredictionLabel, Point(2, identifyFrame.rows - 30), FONT_HERSHEY_SIMPLEX, 0.7, Scalar(255, 255, 255), 1, 16);
+							putText(identifyFrame, "Rozpoznanie glosu: " + voicePredictionLabel, Point(2, identifyFrame.rows - 7), FONT_HERSHEY_SIMPLEX, 0.7, Scalar(255, 255, 255), 1, 16);
 						}
 							
+						imwrite(fileName, identifyFrame, paramIdentify);
+						sendImageToWeb(argv);
 						identifyIsDone = true;
-					}  
+					    usleep(5000000);
 				}	
 			}
 
-			if(index == 30) index=0;
-
-			string name = "/tmp/ramdisk/"+to_string(index)+".jpg"; 
-			imwrite(name, frame);
-			index++;
-	
+			if(index == 200) index=0;
+			
+			if(!identifyIsDone){
+				fileName = "/tmp/ramdisk/photos/"+to_string(index)+".jpg"; 
+				imwrite(fileName, frame, param);
+				index++;
+			}
+			identifyIsDone = false;
 			timer.stop();
-			if(showInfo) showAdvancedInfo(frame, timer.getFPS());
-			imshow(windowName, frame);
+
+			clog << timer.getFPS() << endl;
 		}
 		char key = waitKey(5);
 
